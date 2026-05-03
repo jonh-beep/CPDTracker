@@ -1,0 +1,28 @@
+# Apps Script project ID — keep out of public repo for hygiene
+apps-script/.clasp.json
+apps-script/.clasprc.json
+
+# PWA local config — contains the deployed web app URL
+pwa/config.local.js
+
+# Working directory for sources pulled from Drive during bootstrap
+_pulled/
+
+# Environment files
+.env
+.env.*
+*.local
+
+# Claude Code per-project settings (machine-specific)
+.claude/
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Node (only if we ever add tooling)
+node_modules/
+npm-debug.log*
