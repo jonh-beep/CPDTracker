@@ -2,8 +2,28 @@
 // Entries — CRUD on the CPD_Entries sheet, with audit hooks
 // ============================================================
 
+const SPREADSHEET_NAME = 'CPD Tracker Data';
+
 function getOrCreateSpreadsheet() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  // Standalone script — no active spreadsheet. Cache ID in Script Properties
+  // so we don't pay a Drive search on every request after the first.
+  const props = PropertiesService.getScriptProperties();
+  let ssId = props.getProperty('SPREADSHEET_ID');
+
+  let ss = null;
+  if (ssId) {
+    try { ss = SpreadsheetApp.openById(ssId); } catch (e) { ss = null; }
+  }
+
+  if (!ss) {
+    const files = DriveApp.getFilesByName(SPREADSHEET_NAME);
+    if (files.hasNext()) {
+      ss = SpreadsheetApp.open(files.next());
+    } else {
+      ss = SpreadsheetApp.create(SPREADSHEET_NAME);
+    }
+    props.setProperty('SPREADSHEET_ID', ss.getId());
+  }
 
   let sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
