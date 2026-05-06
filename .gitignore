@@ -2,9 +2,6 @@
 apps-script/.clasp.json
 apps-script/.clasprc.json
 
-# PWA local config — contains the deployed web app URL
-pwa/config.local.js
-
 # Working directory for sources pulled from Drive during bootstrap
 _pulled/
 

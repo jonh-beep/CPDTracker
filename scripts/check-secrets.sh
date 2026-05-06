@@ -11,10 +11,14 @@ cd "$(dirname "$0")/.."
 # placeholders like /macros/s/<deploymentId>/exec.
 patterns='AKfycb[A-Za-z0-9_-]{20,}|/macros/s/[A-Za-z0-9_-]{20,}/exec'
 
-if git ls-files | xargs grep -lE "$patterns" 2>/dev/null; then
+# config.local.js and config.example.js are the designated homes for
+# the web app URL — exclude them from the leak check.
+if git ls-files \
+  | grep -vE '^pwa/config\.(local|example)\.js$' \
+  | xargs grep -lE "$patterns" 2>/dev/null; then
   echo
   echo "ERROR: real-looking deployment URLs found in tracked files (above)." >&2
-  echo "Move them to pwa/config.local.js (gitignored) before committing." >&2
+  echo "If intentional, add the file to the exclusion list in this script." >&2
   exit 1
 fi
 
