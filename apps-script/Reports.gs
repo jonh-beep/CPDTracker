@@ -1,64 +1,27 @@
 // ============================================================
-// Reports — filtered views over entries
+// Reports — filtered array of entries for the report view
 // ============================================================
+// Returns a plain array of entry objects (same shape as getEntries).
+// The frontend does its own aggregation (totals, category breakdown).
 
-function getReportData(role, yearStartDate) {
+function getReport(role, startDate, endDate) {
   assertAllowedUser_();
   try {
-    const entries = getAllEntries();
+    const entries = getEntries();
     if (entries.error) return entries;
 
-    const startDate = new Date(yearStartDate);
-    const endDate = new Date(startDate);
-    endDate.setFullYear(endDate.getFullYear() + 1);
+    const start = new Date(startDate);
+    const end   = new Date(endDate);
+    // Include the full end date (set to end of day)
+    end.setHours(23, 59, 59, 999);
 
-    const filtered = entries.filter(e => {
-      const d = new Date(e.Date);
-      const inRange = d >= startDate && d < endDate;
-      if (!inRange) return false;
-      if (role === 'EPMI') return e.EPMI_Relevant === 'Yes';
-      if (role === 'MasterTrust') return e.MasterTrust_Relevant === 'Yes';
-      return true;
+    return entries.filter(e => {
+      const d = new Date(e['Date']);
+      if (d < start || d > end) return false;
+      if (!role || role === 'All') return true;
+      const rc = e['Role Context'] || '';
+      return rc === role || rc === 'Both';
     });
-
-    const totalHours = filtered.reduce((sum, e) => sum + (parseFloat(e.Hours) || 0), 0);
-
-    const byCategory = {};
-    filtered.forEach(e => {
-      const cat = e.Category || 'Uncategorised';
-      if (!byCategory[cat]) byCategory[cat] = { count: 0, hours: 0 };
-      byCategory[cat].count++;
-      byCategory[cat].hours += parseFloat(e.Hours) || 0;
-    });
-
-    const byType = {};
-    filtered.forEach(e => {
-      const t = e.Type || 'Other';
-      if (!byType[t]) byType[t] = { count: 0, hours: 0 };
-      byType[t].count++;
-      byType[t].hours += parseFloat(e.Hours) || 0;
-    });
-
-    const byMonth = {};
-    filtered.forEach(e => {
-      const d = new Date(e.Date);
-      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-      if (!byMonth[key]) byMonth[key] = { count: 0, hours: 0 };
-      byMonth[key].count++;
-      byMonth[key].hours += parseFloat(e.Hours) || 0;
-    });
-
-    return {
-      success: true,
-      entries: filtered,
-      summary: {
-        totalEntries: filtered.length,
-        totalHours: Math.round(totalHours * 10) / 10,
-        byCategory: byCategory,
-        byType: byType,
-        byMonth: byMonth
-      }
-    };
   } catch (err) {
     return { error: err.message };
   }

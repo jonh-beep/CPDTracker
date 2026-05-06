@@ -1,9 +1,6 @@
 // ============================================================
 // Attachments — Drive uploads, hardened to private
 // ============================================================
-// New uploads are PRIVATE / NONE. The owner (the script's deploying
-// user) is the only one who can open them via Drive's normal viewer
-// auth. There is no public link.
 
 function getOrCreateFolder() {
   const folders = DriveApp.getFoldersByName(FOLDER_NAME);
@@ -11,19 +8,21 @@ function getOrCreateFolder() {
   return DriveApp.createFolder(FOLDER_NAME);
 }
 
-function uploadFile(fileData) {
+// Called by the frontend as: uploadFile(base64String, mimeType, fileName)
+// Returns { url, name } which the frontend uses to populate the entry.
+function uploadFile(base64Data, mimeType, fileName) {
   assertAllowedUser_();
   try {
     const folder = getOrCreateFolder();
-    const decoded = Utilities.base64Decode(fileData.base64);
-    const blob = Utilities.newBlob(decoded, fileData.mimeType, fileData.name);
+    const decoded = Utilities.base64Decode(base64Data);
+    const blob = Utilities.newBlob(decoded, mimeType, fileName);
     const file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
     return {
       success: true,
       fileId: file.getId(),
-      fileName: file.getName(),
-      viewUrl: 'https://drive.google.com/file/d/' + file.getId() + '/view'
+      name: file.getName(),
+      url: 'https://drive.google.com/file/d/' + file.getId() + '/view'
     };
   } catch (err) {
     return { error: err.message };
@@ -40,18 +39,15 @@ function deleteFile(fileId) {
   }
 }
 
-// One-shot maintenance: flip every file in the attachments folder to
-// PRIVATE. Run manually from the Apps Script editor after the first
-// deploy of this hardened code, to revoke any pre-existing public
-// links granted by the old uploadFile().
+// One-shot maintenance: revoke ANYONE_WITH_LINK on pre-existing attachments.
+// Run manually from the Apps Script editor after the first deploy.
 function lockdownExistingAttachments_() {
   assertAllowedUser_();
   const folder = getOrCreateFolder();
   const files = folder.getFiles();
   let count = 0;
   while (files.hasNext()) {
-    const f = files.next();
-    f.setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
+    files.next().setSharing(DriveApp.Access.PRIVATE, DriveApp.Permission.NONE);
     count++;
   }
   return { success: true, lockedDown: count };

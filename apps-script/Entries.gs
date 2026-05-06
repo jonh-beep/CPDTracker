@@ -1,8 +1,6 @@
 // ============================================================
 // Entries — CRUD on the CPD_Entries sheet, with audit hooks
 // ============================================================
-// Bound script: uses the active spreadsheet, which is the
-// "CPD Tracker Data" sheet that contains this script project.
 
 function getOrCreateSpreadsheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -33,7 +31,7 @@ function getOrCreateSpreadsheet() {
   return ss;
 }
 
-function getAllEntries() {
+function getEntries() {
   assertAllowedUser_();
   try {
     const ss = getOrCreateSpreadsheet();
@@ -45,19 +43,18 @@ function getAllEntries() {
     return data.slice(1).map(row => {
       const entry = {};
       headers.forEach((h, i) => { entry[h] = row[i]; });
-      try { entry.Links = entry.Links ? JSON.parse(entry.Links) : []; } catch (e) { entry.Links = []; }
-      try { entry.Attachments = entry.Attachments ? JSON.parse(entry.Attachments) : []; } catch (e) { entry.Attachments = []; }
-      if (entry.Date instanceof Date) {
-        entry.Date = Utilities.formatDate(entry.Date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+      if (entry['Date'] instanceof Date) {
+        entry['Date'] = Utilities.formatDate(
+          entry['Date'], Session.getScriptTimeZone(), 'yyyy-MM-dd'
+        );
       }
-      if (entry.Created instanceof Date) {
-        entry.Created = Utilities.formatDate(entry.Created, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
-      }
-      if (entry.Modified instanceof Date) {
-        entry.Modified = Utilities.formatDate(entry.Modified, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+      if (entry['Created At'] instanceof Date) {
+        entry['Created At'] = Utilities.formatDate(
+          entry['Created At'], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'
+        );
       }
       return entry;
-    }).filter(e => e.ID);
+    }).filter(e => e['ID']);
   } catch (err) {
     return { error: err.message };
   }
@@ -77,24 +74,25 @@ function getSettings() {
   }
 }
 
-function buildRow_(id, entryData, createdAt, modifiedAt) {
+// Build a row array from an entry object, in ENTRY_HEADERS order.
+function buildRow_(id, data, createdAt) {
   return [
     id,
-    new Date(entryData.date),
-    entryData.title,
-    entryData.description || '',
-    entryData.category || '',
-    entryData.type || '',
-    parseFloat(entryData.hours) || 0,
-    entryData.provider || '',
-    entryData.role || 'Both',
-    entryData.epmi_relevant ? 'Yes' : 'No',
-    entryData.mastertrust_relevant ? 'Yes' : 'No',
-    JSON.stringify(entryData.links || []),
-    JSON.stringify(entryData.attachments || []),
-    entryData.notes || '',
-    createdAt,
-    modifiedAt
+    new Date(data.date || data['Date']),
+    data.title   || data['Title']               || '',
+    data.provider || data['Provider / Source']   || '',
+    data.category || data['Category']            || '',
+    data.roleContext || data['Role Context']      || '',
+    data.cpdType    || data['CPD Type']           || '',
+    parseFloat(data.duration || data['Duration (hours)']) || 0,
+    data.description || data['Description / Impact'] || '',
+    data.attachmentName || data['Attachment Name'] || '',
+    data.attachmentUrl  || data['Attachment URL']  || '',
+    data.linkUrl        || data['Link URL']        || '',
+    Array.isArray(data.tags)
+      ? data.tags.join(', ')
+      : (data['Tags'] || ''),
+    createdAt
   ];
 }
 
@@ -105,7 +103,7 @@ function addEntry(entryData) {
     const sheet = ss.getSheetByName(SHEET_NAME);
     const now = new Date();
     const id = 'CPD_' + now.getTime();
-    const row = buildRow_(id, entryData, now, now);
+    const row = buildRow_(id, entryData, now);
     sheet.appendRow(row);
     logCreate_(id, row);
     return { success: true, id: id };
@@ -114,21 +112,23 @@ function addEntry(entryData) {
   }
 }
 
-function updateEntry(entryId, entryData) {
+// Frontend passes a single entry object; ID is at entry.ID or entry['ID'].
+function updateEntry(entry) {
   assertAllowedUser_();
   try {
+    const entryId = entry.ID || entry['ID'];
+    if (!entryId) return { error: 'Missing entry ID' };
+
     const ss = getOrCreateSpreadsheet();
     const sheet = ss.getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
 
     for (let i = 1; i < data.length; i++) {
       if (data[i][0] === entryId) {
-        const r = i + 1;
         const oldRow = data[i];
-        const now = new Date();
-        const created = oldRow[14]; // preserve original Created
-        const newRow = buildRow_(entryId, entryData, created, now);
-        sheet.getRange(r, 1, 1, ENTRY_HEADERS.length).setValues([newRow]);
+        const created = oldRow[ENTRY_HEADERS.indexOf('Created At')];
+        const newRow = buildRow_(entryId, entry, created);
+        sheet.getRange(i + 1, 1, 1, ENTRY_HEADERS.length).setValues([newRow]);
         logUpdate_(entryId, oldRow, newRow);
         return { success: true };
       }

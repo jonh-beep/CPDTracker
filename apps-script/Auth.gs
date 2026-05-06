@@ -1,9 +1,6 @@
 // ============================================================
 // Auth — single-user allowlist
 // ============================================================
-// Belt-and-braces with appsscript.json (access: MYSELF). The deployment
-// setting blocks anonymous traffic; this allowlist blocks any future
-// misconfig from accidentally widening access.
 
 const ALLOWED_USERS = [
   'darcybeans@googlemail.com'
@@ -16,8 +13,9 @@ function assertAllowedUser_() {
   }
 }
 
-function getUserInfo() {
+// Returns the signed-in user's email as a plain string.
+// Called by the frontend header to display "Signed in as …"
+function getCurrentUser() {
   assertAllowedUser_();
-  const email = Session.getActiveUser().getEmail();
-  return { email: email, name: email };
+  return Session.getActiveUser().getEmail();
 }
