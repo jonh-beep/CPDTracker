@@ -800,6 +800,30 @@
     #view-log, #view-dash { display: none !important; }
     .card { box-shadow: none; border: 1px solid #ccc; }
   }
+
+  /* ---- Import view ---- */
+  .import-tabs { display: flex; gap: 8px; margin-bottom: 4px; }
+  .import-tab {
+    padding: 8px 16px; border-radius: var(--radius-sm);
+    border: 1px solid var(--rule); background: var(--surface-alt);
+    color: var(--ink-soft); font-size: 0.9rem; cursor: pointer;
+    font-family: var(--font-sans); transition: all 0.15s;
+  }
+  .import-tab.active {
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  .import-field-row {
+    display: grid; grid-template-columns: 140px 1fr;
+    gap: 6px 12px; align-items: start;
+    padding: 10px 0; border-bottom: 1px solid var(--rule); font-size: 0.9rem;
+  }
+  .import-field-row:last-child { border-bottom: none; }
+  .import-field-label { color: var(--ink-muted); font-size: 0.8rem; padding-top: 2px; }
+  .import-field-value { color: var(--ink); font-weight: 500; }
+  .import-field-value .pill { font-size: 0.75rem; }
+  .import-extracting {
+    text-align: center; padding: 40px 20px; color: var(--ink-muted);
+  }
 </style>
 </head>
 <body>
@@ -828,6 +852,9 @@
     </button>
     <button onclick="showView('report')" id="nav-report">
       📊 Reports
+    </button>
+    <button onclick="showView('import')" id="nav-import">
+      ✨ Import
     </button>
   </nav>
 
@@ -1050,6 +1077,60 @@
               </thead>
               <tbody id="report-table-body"></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================
+         IMPORT VIEW
+         ====================================================== -->
+    <div class="view" id="view-import">
+      <div class="card">
+        <div style="font-family:var(--font-serif);font-size:1.3rem;margin-bottom:6px">✨ Import from Agenda</div>
+        <p style="color:var(--ink-muted);font-size:0.9rem;margin-bottom:20px">Paste a web address or upload a screenshot / PDF — Claude will extract the CPD details for you to review before saving.</p>
+
+        <!-- Mode tabs -->
+        <div class="import-tabs" id="import-tabs">
+          <button class="import-tab active" onclick="setImportMode('url')" id="itab-url">🔗 Web address</button>
+          <button class="import-tab" onclick="setImportMode('file')" id="itab-file">📄 File / Screenshot</button>
+        </div>
+
+        <!-- URL mode -->
+        <div id="import-url-area">
+          <div class="form-group" style="margin-top:16px">
+            <label>Agenda or event URL</label>
+            <input type="url" id="import-url" placeholder="https://example.com/event-agenda" style="font-size:0.95rem">
+          </div>
+          <button class="btn btn-primary" onclick="runImport()" id="import-btn">✨ Extract details</button>
+        </div>
+
+        <!-- File mode -->
+        <div id="import-file-area" style="display:none">
+          <div class="upload-zone" id="import-drop-zone" style="margin-top:16px"
+               onclick="document.getElementById('import-file-input').click()"
+               ondragover="event.preventDefault();this.classList.add('dragover')"
+               ondragleave="this.classList.remove('dragover')"
+               ondrop="handleImportDrop(event)">
+            <div class="upload-icon">📎</div>
+            <div class="upload-label">Drop a PDF, JPEG, or PNG here</div>
+            <div class="upload-hint">or tap to choose a file — max 4 MB</div>
+          </div>
+          <input type="file" id="import-file-input" accept="image/*,application/pdf" style="display:none" onchange="handleImportFileSelect(event)">
+          <div id="import-file-preview" style="margin-top:8px"></div>
+          <button class="btn btn-primary" onclick="runImport()" id="import-btn-file" style="margin-top:12px" disabled>✨ Extract details</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="import-result" style="display:none">
+        <div class="card">
+          <div style="font-family:var(--font-serif);font-size:1.1rem;margin-bottom:16px">📋 Extracted details</div>
+          <p style="color:var(--ink-muted);font-size:0.85rem;margin-bottom:16px">Review what Claude found. Click <strong>Pre-fill log form</strong> to move these into the entry form — you can edit anything before saving.</p>
+          <div id="import-fields"></div>
+          <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="prefillFromImport()">📝 Pre-fill log form</button>
+            <button class="btn btn-ghost" onclick="clearImport()">✕ Clear</button>
           </div>
         </div>
       </div>
@@ -1366,6 +1447,135 @@ function deleteEntry(id) {
     })
     .withFailureHandler(e => toast('Failed: ' + e.message, 'error'))
     .deleteEntry(id);
+}
+
+// ============================================================
+// IMPORT (AI extraction)
+// ============================================================
+let importMode = 'url';
+let importFile = null;
+let importedEntry = null;
+
+function setImportMode(mode) {
+  importMode = mode;
+  document.getElementById('import-url-area').style.display  = mode === 'url'  ? '' : 'none';
+  document.getElementById('import-file-area').style.display = mode === 'file' ? '' : 'none';
+  document.getElementById('itab-url').classList.toggle('active',  mode === 'url');
+  document.getElementById('itab-file').classList.toggle('active', mode === 'file');
+}
+
+function handleImportDrop(e) {
+  e.preventDefault();
+  document.getElementById('import-drop-zone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) setImportFile(file);
+}
+
+function handleImportFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) setImportFile(file);
+}
+
+function setImportFile(file) {
+  if (file.size > 4 * 1024 * 1024) { toast('File too large — max 4 MB', 'error'); return; }
+  const ok = file.type === 'application/pdf' || file.type.startsWith('image/');
+  if (!ok) { toast('Please choose a PDF, JPEG, or PNG', 'error'); return; }
+  importFile = file;
+  document.getElementById('import-file-preview').innerHTML =
+    `<div class="file-preview">📎 ${escHtml(file.name)} (${(file.size/1024).toFixed(0)} KB)
+       <button class="remove-file" onclick="clearImportFile()">✕</button></div>`;
+  document.getElementById('import-btn-file').disabled = false;
+}
+
+function clearImportFile() {
+  importFile = null;
+  document.getElementById('import-file-input').value = '';
+  document.getElementById('import-file-preview').innerHTML = '';
+  document.getElementById('import-btn-file').disabled = true;
+}
+
+function runImport() {
+  const resultEl = document.getElementById('import-result');
+  const fieldsEl = document.getElementById('import-fields');
+  resultEl.style.display = 'block';
+  fieldsEl.innerHTML = '<div class="import-extracting"><div class="spinner"></div><p style="margin-top:12px">Asking Claude to extract details…</p></div>';
+
+  if (importMode === 'url') {
+    const url = document.getElementById('import-url').value.trim();
+    if (!url) { toast('Please enter a URL', 'error'); resultEl.style.display = 'none'; return; }
+    google.script.run
+      .withSuccessHandler(handleImportResult)
+      .withFailureHandler(e => { toast('Extract failed: ' + e.message, 'error'); resultEl.style.display = 'none'; })
+      .extractCpdFromUrl(url);
+  } else {
+    if (!importFile) { toast('Please choose a file', 'error'); resultEl.style.display = 'none'; return; }
+    const reader = new FileReader();
+    reader.onload = evt => {
+      const base64 = evt.target.result.split(',')[1];
+      google.script.run
+        .withSuccessHandler(handleImportResult)
+        .withFailureHandler(e => { toast('Extract failed: ' + e.message, 'error'); resultEl.style.display = 'none'; })
+        .extractCpdFromFile(base64, importFile.type);
+    };
+    reader.readAsDataURL(importFile);
+  }
+}
+
+function handleImportResult(r) {
+  const fieldsEl = document.getElementById('import-fields');
+  if (!r || r.error) {
+    fieldsEl.innerHTML = `<p style="color:var(--danger)">❌ ${escHtml(r ? r.error : 'Unknown error')}</p>`;
+    return;
+  }
+  importedEntry = r.entry;
+  const e = importedEntry;
+  const roleClass = { 'EPMI': 'pill-epmi', 'Master Trust': 'pill-trust', 'Both': 'pill-both' }[e.roleContext] || '';
+  const typeClass = e.cpdType === 'Structured' ? 'pill-structured' : 'pill-unstructured';
+  const rows = [
+    ['Title',       escHtml(e.title || '—')],
+    ['Date',        escHtml(e.date || '—')],
+    ['Provider',    escHtml(e.provider || '—')],
+    ['Category',    escHtml(e.category || '—')],
+    ['Type',        e.cpdType ? `<span class="pill ${typeClass}">${escHtml(e.cpdType)}</span>` : '—'],
+    ['Hours',       escHtml(String(e.duration || '—'))],
+    ['Role',        e.roleContext ? `<span class="pill ${roleClass}">${escHtml(e.roleContext)}</span>` : '—'],
+    ['Description', escHtml(e.description || '—')],
+    ['Tags',        escHtml(e.tags || '—')],
+    ['Link',        e.linkUrl ? `<a href="${escHtml(e.linkUrl)}" target="_blank" style="color:var(--accent)">${escHtml(e.linkUrl.slice(0,60))}${e.linkUrl.length>60?'…':''}</a>` : '—'],
+  ];
+  fieldsEl.innerHTML = rows.map(([label, val]) =>
+    `<div class="import-field-row">
+       <span class="import-field-label">${label}</span>
+       <span class="import-field-value">${val}</span>
+     </div>`
+  ).join('');
+}
+
+function prefillFromImport() {
+  if (!importedEntry) return;
+  const e = importedEntry;
+  // Switch to log view and fill every field
+  showView('log');
+  if (e.date) document.getElementById('f-date').value = e.date;
+  document.getElementById('f-title').value    = e.title    || '';
+  document.getElementById('f-provider').value = e.provider || '';
+  document.getElementById('f-category').value = e.category || '';
+  document.getElementById('f-role').value     = e.roleContext || '';
+  document.getElementById('f-type').value     = e.cpdType  || '';
+  document.getElementById('f-duration').value = e.duration || '';
+  document.getElementById('f-description').value = e.description || '';
+  document.getElementById('f-link').value     = e.linkUrl  || '';
+  // Tags
+  currentTags = e.tags ? e.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
+  renderTagsDisplay();
+  toast('Form pre-filled — review and save ✓', 'success');
+}
+
+function clearImport() {
+  importedEntry = null;
+  document.getElementById('import-result').style.display = 'none';
+  document.getElementById('import-url').value = '';
+  clearImportFile();
 }
 
 // ============================================================

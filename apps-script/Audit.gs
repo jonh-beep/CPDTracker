@@ -17,7 +17,7 @@ function ensureAuditSheet_(ss) {
 }
 
 function logAudit_(action, entryId, field, oldValue, newValue) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getOrCreateSpreadsheet(); // standalone script — cannot use getActiveSpreadsheet()
   const sheet = ensureAuditSheet_(ss);
   const actor = Session.getActiveUser().getEmail() || 'unknown';
   sheet.appendRow([
