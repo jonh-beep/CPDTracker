@@ -832,6 +832,26 @@
   .empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
   .empty-state p { font-size: 0.9rem; margin-bottom: 16px; }
 
+  /* ---- Version badge ---- */
+  .version-badge {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 20px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--ink-fade);
+    letter-spacing: 0.03em;
+  }
+
+  .version-badge::before {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
   /* ---- Tags ---- */
   .tags-input-wrap { position: relative; }
 
@@ -1014,6 +1034,8 @@
           <div class="recent-title">Recent activity</div>
           <div id="recent-list"></div>
         </div>
+
+        <div class="version-badge" id="app-version-badge"></div>
       </div>
     </div>
 
@@ -1276,6 +1298,11 @@
 
 <script>
 // ============================================================
+// APP VERSION — update this on every deploy
+// ============================================================
+const APP_VERSION = 'v16 · 24 May 2026';
+
+// ============================================================
 // SVG ICON CONSTANTS
 // ============================================================
 const ICON_EDIT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"/></svg>`;
@@ -1295,6 +1322,9 @@ let pendingAttachment = null;
 // INIT
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
+  // Render version badge
+  document.getElementById('app-version-badge').textContent = APP_VERSION;
+
   // Set today's date as default
   document.getElementById('f-date').valueAsDate = new Date();
 
