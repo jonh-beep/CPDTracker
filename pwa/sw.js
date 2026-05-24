@@ -1,5 +1,5 @@
 // CPD Tracker Service Worker
-const CACHE_NAME = 'cpd-tracker-v2';
+const CACHE_NAME = 'cpd-tracker-v3';
 const CACHE_URLS = [
   '/CPDTracker/',
   '/CPDTracker/index.html',
