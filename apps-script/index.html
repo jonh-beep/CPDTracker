@@ -940,7 +940,16 @@
 
   <header>
     <div class="header-brand">
-      <div class="brand-icon">📋</div>
+      <div class="brand-icon">
+        <svg width="20" height="20" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="18" y="14" width="22" height="32" rx="2" fill="#fff"/>
+          <rect x="22" y="20" width="14" height="2" rx="1" fill="#2d5be3"/>
+          <rect x="22" y="26" width="14" height="2" rx="1" fill="#2d5be3"/>
+          <rect x="22" y="32" width="9"  height="2" rx="1" fill="#2d5be3"/>
+          <circle cx="44" cy="44" r="9" fill="#22c55e"/>
+          <path d="M40 44 L43 47 L48 41" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
       <div class="brand-name">CPD <span>Tracker</span></div>
     </div>
     <div class="header-user">
@@ -951,19 +960,24 @@
 
   <nav>
     <button class="active" onclick="showView('dash')" id="nav-dash">
-      🏠 Dashboard <span class="nav-count" id="count-all">0</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard <span class="nav-count" id="count-all">0</span>
     </button>
     <button onclick="showView('log')" id="nav-log">
-      📝 Log entry
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"/></svg>
+      Log entry
     </button>
     <button onclick="showView('entries')" id="nav-entries">
-      📚 All entries
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      All entries
     </button>
     <button onclick="showView('report')" id="nav-report">
-      📊 Reports
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports
     </button>
     <button onclick="showView('import')" id="nav-import">
-      ✨ Import
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Import
     </button>
   </nav>
 
@@ -1143,7 +1157,7 @@
     
     <div class="view" id="view-report">
       <div class="card">
-        <div style="font-family:var(--font-serif);font-size:1.3rem;margin-bottom:20px">Generate Report</div>
+        <div class="recent-title">Generate report</div>
         <div class="report-controls">
           <div class="form-group">
             <label>Role / Accreditation</label>
@@ -1197,7 +1211,7 @@
          ====================================================== -->
     <div class="view" id="view-import">
       <div class="card">
-        <div style="font-family:var(--font-serif);font-size:1.3rem;margin-bottom:6px">✨ Import from Agenda</div>
+        <div class="recent-title">Import from agenda</div>
         <p style="color:var(--ink-muted);font-size:0.9rem;margin-bottom:20px">Paste a web address or upload a screenshot / PDF — Claude will extract the CPD details for you to review before saving.</p>
 
         <!-- Mode tabs -->
@@ -1241,7 +1255,7 @@
       <!-- Results -->
       <div id="import-result" style="display:none">
         <div class="card">
-          <div style="font-family:var(--font-serif);font-size:1.1rem;margin-bottom:16px">📋 Extracted details</div>
+          <div class="recent-title" style="margin-bottom:16px">Extracted details</div>
           <p style="color:var(--ink-muted);font-size:0.85rem;margin-bottom:16px">Review what Claude found. Click <strong>Pre-fill log form</strong> to move these into the entry form — you can edit anything before saving.</p>
           <div id="import-fields"></div>
           <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
@@ -1261,6 +1275,14 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script>
+// ============================================================
+// SVG ICON CONSTANTS
+// ============================================================
+const ICON_EDIT = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 9.5-9.5z"/></svg>`;
+const ICON_DEL  = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`;
+const ICON_CLIP = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>`;
+const ICON_LINK = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`;
+
 // ============================================================
 // STATE
 // ============================================================
@@ -1359,7 +1381,8 @@ function renderDashboard() {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No entries yet. Start by logging your first CPD activity.</p><button class="btn btn-primary" onclick="showView(\'log\')"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add first entry</button></div>';
     return;
   }
-  list.innerHTML = recent.map(e => entryItemHtml(e, true)).join('');
+  list.innerHTML = recent.map(e => entryItemHtml(e, true)).join('') +
+    '<div style="text-align:right;margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="showView(\'entries\')">View all entries →</button></div>';
 }
 
 function updateCountBadge() {
@@ -1402,16 +1425,16 @@ function entryItemHtml(e, compact) {
 
   let attachHtml = '';
   if (e['Attachment URL']) {
-    attachHtml += `<a class="attach-link" href="${e['Attachment URL']}" target="_blank">📎 ${e['Attachment Name'] || 'Attachment'}</a>`;
+    attachHtml += `<a class="attach-link" href="${e['Attachment URL']}" target="_blank">${ICON_CLIP} ${e['Attachment Name'] || 'Attachment'}</a>`;
   }
   if (e['Link URL']) {
-    attachHtml += `<a class="attach-link" href="${e['Link URL']}" target="_blank">🔗 External link</a>`;
+    attachHtml += `<a class="attach-link" href="${e['Link URL']}" target="_blank">${ICON_LINK} External link</a>`;
   }
 
   const actions = compact ? '' : `
     <div class="entry-actions">
-      <button class="icon-btn icon-btn-edit" title="Edit" onclick="event.stopPropagation();editEntry('${e['ID']}')">✏️</button>
-      <button class="icon-btn icon-btn-del" title="Delete" onclick="event.stopPropagation();deleteEntry('${e['ID']}')">🗑</button>
+      <button class="icon-btn icon-btn-edit" title="Edit" onclick="event.stopPropagation();editEntry('${e['ID']}')">${ICON_EDIT}</button>
+      <button class="icon-btn icon-btn-del" title="Delete" onclick="event.stopPropagation();deleteEntry('${e['ID']}')">${ICON_DEL}</button>
     </div>`;
 
   return `
@@ -1427,7 +1450,7 @@ function entryItemHtml(e, compact) {
           <span class="pill ${typeClass}">${e['CPD Type'] || ''}</span>
           ${e['Category'] ? `<span style="font-size:0.72rem;color:var(--ink-muted)">${escHtml(e['Category'])}</span>` : ''}
         </div>
-        ${e['Provider / Source'] ? `<div class="entry-provider">📍 ${escHtml(e['Provider / Source'])}</div>` : ''}
+        ${e['Provider / Source'] ? `<div class="entry-provider"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${escHtml(e['Provider / Source'])}</div>` : ''}
         ${attachHtml}
       </div>
       ${actions}
