@@ -4,39 +4,52 @@ Two surfaces, two pipelines.
 
 ## Apps Script backend (clasp)
 
-First time on a new machine:
+### First time on a new machine
 
 ```sh
 npm i -g @google/clasp
 clasp login                       # opens browser; sign in as darcybeans
 
 cd apps-script
-cp .clasp.json.example .clasp.json
-clasp pull                        # sanity check — local should match deployed
+cp .clasp.json.example .clasp.json              # fill in scriptId
+cp .deployment-id.example .deployment-id.local  # paste the deploymentId
 ```
 
-Day-to-day:
+The `deploymentId` is the long `AKfycb…` string from the existing web app
+URL (everything between `/s/` and `/exec`). Never commit it — it is the
+effective address of the app and is gitignored via `*.local`.
+
+### Day-to-day deploy
 
 ```sh
-./scripts/deploy.sh "what changed in this push"
+./scripts/deploy.sh <version_number> "what changed"
 ```
 
-That runs `scripts/check-secrets.sh`, `clasp push`, then
-`clasp deploy --description "<git short sha>: <message>"`. Each deployment
-shows up in the Apps Script editor with the commit it came from.
-
-The deployed web app URL is **stable per deployment ID** — you create new
-deployment IDs only when you want a fresh URL (e.g. to retire a leaked one).
-Updating the existing deployment keeps the same URL, so the PWA shell
-doesn't need re-configuring.
-
-To update the existing deployment instead of creating a new one:
-
+**Example:**
 ```sh
-cd apps-script
-clasp deployments                 # list, copy the deploymentId
-clasp deploy --deploymentId <id> --description "<sha>: <message>"
+./scripts/deploy.sh 17 "add CSV export"
 ```
+
+The script automatically:
+1. Sets `APP_VERSION = 'v17 · 24 May 2026'` in `apps-script/index.html`
+2. Runs `scripts/check-secrets.sh` (aborts if secrets found)
+3. `clasp push --force`
+4. `clasp deploy --deploymentId <id> --description "<sha>: <message>"`
+5. Prints the `git commit` and `git push` commands to run next
+
+The deployed web app URL stays **constant** — the same `deploymentId` is
+updated in place, so the PWA shell doesn't need re-configuring and the
+iPhone home-screen shortcut keeps working.
+
+The version badge (`v17 · 24 May 2026`) appears at the bottom of the
+dashboard so you can confirm the new version is live as soon as you open
+the app.
+
+### Choosing a version number
+
+Simple increment — check the last deployed version by looking at the
+`APP_VERSION` constant at the top of `apps-script/index.html`, or just
+open the app and check the dashboard footer.
 
 ## PWA shell (GitHub Pages)
 
