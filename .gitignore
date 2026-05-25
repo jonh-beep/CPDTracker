@@ -23,3 +23,4 @@ _pulled/
 # Node (only if we ever add tooling)
 node_modules/
 npm-debug.log*
+pipeline-apps-script/.clasp.json

@@ -1,0 +1,162 @@
+# CPD Agenda Pipeline — run context (.claude-md)
+
+This file is the reference context for the CPD Agenda Processing
+Pipeline. The Cowork scheduled task reads it at the start of every run.
+
+The Cowork session finalises this file AFTER deployment (filling in the
+web app URL, shared secret and folder IDs from Claude Code's report)
+and places it at `/CPD-Inbox/.claude-md`.
+
+Treat the web app URL and shared secret as secrets. This file lives
+only in the `/CPD-Inbox/` Drive folder — never commit it to a repo.
+
+---
+
+## Endpoint  (filled in Phase 2)
+
+- WEB_APP_URL: `<<FILL: https://script.google.com/macros/s/.../exec>>`
+- SHARED_SECRET: `<<FILL: from setup() execution log>>`
+- ALERT_EMAIL: `darcybeans@googlemail.com`
+
+## Drive folders  (filled in Phase 2)
+
+```
+/CPD-Inbox/
+  inbox/      FOLDER_INBOX_ID:     <<FILL>>
+  processed/  FOLDER_PROCESSED_ID: <<FILL>>
+  failed/     FOLDER_FAILED_ID:    <<FILL>>
+  logs/       FOLDER_LOGS_ID:      <<FILL>>
+    manifest.json    processed-file ledger (the idempotency record)
+    run-log.md       human-readable run history
+  .claude-md         this file
+```
+
+Working scope: `/CPD-Inbox/` only. Never touch anything outside it.
+Never delete files; the web app moves them.
+
+---
+
+## Controlled CPD theme taxonomy (11 categories)
+
+Every extracted theme MUST map exactly to one of these. If a theme
+cannot be mapped confidently, the file is FAILED — never guess.
+
+1. Governance & Trusteeship
+2. Investments & ESG
+3. DC Pensions & Master Trusts
+4. Administration & Technology
+5. Legal & Regulatory
+6. Member Communications
+7. Cyber Security & Data
+8. Financial Management
+9. Equality, Diversity & Inclusion
+10. Industry Events & Networking
+11. Other
+
+"Other" is a valid mapping for a genuine CPD theme that fits no
+specific category — it is NOT a dumping ground for themes you are
+unsure about. An unmappable or ambiguous theme means FAIL the file.
+
+---
+
+## What to extract from each agenda
+
+| Field | Notes |
+|-------|-------|
+| `event_date` | The date the CPD activity takes place. ISO `yyyy-mm-dd`. |
+| `duration_minutes` | Total scheduled duration, in minutes (integer). |
+| `title` | The event / activity name. |
+| `organiser` | The body running it (e.g. PMI, Aon, PASA, Professional Pensions). |
+| `themes` | 1+ categories from the taxonomy above. First = primary. |
+| `summary` | 1–2 sentence plain-English summary of the agenda. |
+
+Type and Role are intentionally left blank — Jon sets those by hand
+in the CPDTracker app.
+
+If `event_date`, `duration_minutes`, `title` or `organiser` cannot be
+determined with confidence, FAIL the file (`reason: ambiguous_data` or
+the specific missing field). Do not guess.
+
+---
+
+## Endpoint contract
+
+POST JSON to `WEB_APP_URL`. Every request carries `token` =
+`SHARED_SECRET` in the body (Apps Script cannot read HTTP headers).
+All responses are HTTP 200; the real outcome is the `status` field.
+
+### action: `ingest` — a successfully extracted file
+
+```json
+{
+  "token": "<SHARED_SECRET>",
+  "action": "ingest",
+  "record": {
+    "event_date": "2026-05-19",
+    "duration_minutes": 360,
+    "title": "Professional Pensions Live 2026",
+    "organiser": "Professional Pensions",
+    "themes": ["DC Pensions & Master Trusts", "Investments & ESG"],
+    "summary": "One-day conference on DC governance, investment and net zero.",
+    "source_url": "https://example.com/agenda",
+    "source_file_id": "<Drive file ID of the inbox file>",
+    "source_filename": "ppl2026.pdf",
+    "source_hash": "<SHA-256 hex of the file's bytes>"
+  }
+}
+```
+
+`source_url` only for `.txt`-URL files; otherwise omit or leave empty.
+
+Response `status`: `created` | `merged` | `skipped_identical`
+(file moved to `/processed/`), or `error` (file moved to `/failed/`).
+
+### action: `fail` — extraction failed before a record could be built
+
+```json
+{
+  "token": "<SHARED_SECRET>",
+  "action": "fail",
+  "source_file_id": "<Drive file ID>",
+  "source_filename": "broken.pdf",
+  "source_hash": "<SHA-256 hex, or empty if unreadable>",
+  "reason": "web_fetch_failed | parse_error | taxonomy_unmappable | ambiguous_data | ..."
+}
+```
+
+The web app moves the file to `/failed/` and writes a
+`<filename>.error.json` sidecar.
+
+### action: `report_failures` — once, at end of run
+
+```json
+{
+  "token": "<SHARED_SECRET>",
+  "action": "report_failures",
+  "run_id": "2026-05-25T19:00",
+  "failures": [
+    { "filename": "broken.pdf", "reason": "parse_error" }
+  ]
+}
+```
+
+Send this ONLY if there were failures. The web app sends one
+consolidated email to `ALERT_EMAIL`. An empty list sends nothing.
+
+---
+
+## Dedup — decided by the web app, not the runner
+
+The runner extracts and POSTs; the web app decides. For context only:
+
+- same `source_hash` already recorded → `skipped_identical`
+- same `logical_key` (`event_date | organiser | title`, normalised),
+  different hash → additive `merged` (fills blank fields only)
+- otherwise → `created`
+
+## Idempotency
+
+Before processing a file, SHA-256 hash it and check
+`logs/manifest.json`. If that hash already appears there, the file was
+already handled — skip it (and let the web app's move stand). This is
+what lets an interrupted run resume cleanly.
