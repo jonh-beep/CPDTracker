@@ -1229,12 +1229,12 @@
     </div>
 
     <!-- ======================================================
-         IMPORT VIEW
+         IMPORT VIEW — queue an agenda for the CPD pipeline
          ====================================================== -->
     <div class="view" id="view-import">
       <div class="card">
-        <div class="recent-title">Import from agenda</div>
-        <p style="color:var(--ink-muted);font-size:0.9rem;margin-bottom:20px">Paste a web address or upload a screenshot / PDF — Claude will extract the CPD details for you to review before saving.</p>
+        <div class="recent-title">Queue an agenda</div>
+        <p style="color:var(--ink-muted);font-size:0.9rem;margin-bottom:20px">Add a web address or upload a screenshot / PDF. It is placed in the CPD pipeline inbox and processed automatically on the next scheduled run (weekdays, 19:00) — the extracted entry then appears in <strong>All entries</strong>.</p>
 
         <!-- Mode tabs -->
         <div class="import-tabs" id="import-tabs">
@@ -1248,9 +1248,9 @@
             <label>Agenda or event URL</label>
             <input type="url" id="import-url" placeholder="https://example.com/event-agenda" style="font-size:0.95rem">
           </div>
-          <button class="btn btn-primary" onclick="runImport()" id="import-btn" style="margin-top:12px">
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Extract details
+          <button class="btn btn-primary" onclick="queueAgenda()" id="import-btn" style="margin-top:12px">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Queue for processing
           </button>
         </div>
 
@@ -1263,29 +1263,24 @@
                ondrop="handleImportDrop(event)">
             <div class="upload-icon">📎</div>
             <div class="upload-label">Drop a PDF, JPEG, or PNG here</div>
-            <div class="upload-hint">or tap to choose a file — max 4 MB</div>
+            <div class="upload-hint">or tap to choose a file — max 10 MB</div>
           </div>
           <input type="file" id="import-file-input" accept="image/*,application/pdf" style="display:none" onchange="handleImportFileSelect(event)">
           <div id="import-file-preview" style="margin-top:8px"></div>
-          <button class="btn btn-primary" onclick="runImport()" id="import-btn-file" style="margin-top:12px" disabled>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            Extract details
+          <button class="btn btn-primary" onclick="queueAgenda()" id="import-btn-file" style="margin-top:12px" disabled>
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Queue for processing
           </button>
         </div>
       </div>
 
-      <!-- Results -->
-      <div id="import-result" style="display:none">
-        <div class="card">
-          <div class="recent-title" style="margin-bottom:16px">Extracted details</div>
-          <p style="color:var(--ink-muted);font-size:0.85rem;margin-bottom:16px">Review what Claude found. Click <strong>Pre-fill log form</strong> to move these into the entry form — you can edit anything before saving.</p>
-          <div id="import-fields"></div>
-          <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="prefillFromImport()">
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              Pre-fill log form
-            </button>
-            <button class="btn btn-ghost" onclick="clearImport()">✕ Clear</button>
+      <!-- Queued confirmation -->
+      <div id="import-queued" class="card" style="display:none">
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="width:32px;height:32px;flex-shrink:0;border-radius:50%;background:var(--success-soft);color:var(--success);display:flex;align-items:center;justify-content:center;font-weight:700">✓</div>
+          <div>
+            <div style="font-weight:600;color:var(--ink)">Agenda queued</div>
+            <p style="color:var(--ink-muted);font-size:0.85rem;margin-top:4px" id="import-queued-msg"></p>
           </div>
         </div>
       </div>
@@ -1300,7 +1295,7 @@
 // ============================================================
 // APP VERSION — update this on every deploy
 // ============================================================
-const APP_VERSION = 'v16 · 24 May 2026';
+const APP_VERSION = 'v17 · 25 May 2026';
 
 // ============================================================
 // SVG ICON CONSTANTS
@@ -1623,11 +1618,10 @@ function deleteEntry(id) {
 }
 
 // ============================================================
-// IMPORT (AI extraction)
+// IMPORT — queue an agenda for the CPD pipeline
 // ============================================================
 let importMode = 'url';
 let importFile = null;
-let importedEntry = null;
 
 function setImportMode(mode) {
   importMode = mode;
@@ -1650,7 +1644,7 @@ function handleImportFileSelect(e) {
 }
 
 function setImportFile(file) {
-  if (file.size > 4 * 1024 * 1024) { toast(`File too large — ${(file.size/1024/1024).toFixed(1)} MB exceeds the 4 MB limit`, 'error'); return; }
+  if (file.size > 10 * 1024 * 1024) { toast(`File too large — ${(file.size/1024/1024).toFixed(1)} MB exceeds the 10 MB limit`, 'error'); return; }
   const ok = file.type === 'application/pdf' || file.type.startsWith('image/');
   if (!ok) { toast('Choose a PDF, JPEG, or PNG', 'error'); return; }
   importFile = file;
@@ -1667,88 +1661,51 @@ function clearImportFile() {
   document.getElementById('import-btn-file').disabled = true;
 }
 
-function runImport() {
-  const resultEl = document.getElementById('import-result');
-  const fieldsEl = document.getElementById('import-fields');
-  resultEl.style.display = 'block';
-  fieldsEl.innerHTML = '<div class="import-extracting"><div class="spinner"></div><p style="margin-top:12px">Asking Claude to extract details…</p></div>';
+function queueAgenda() {
+  const btn = importMode === 'url'
+    ? document.getElementById('import-btn')
+    : document.getElementById('import-btn-file');
+  const origHtml = btn.innerHTML;
+  const busy = () => { btn.disabled = true; btn.innerHTML = '⏳ Queuing…'; };
+  const done = () => { btn.disabled = false; btn.innerHTML = origHtml; };
 
   if (importMode === 'url') {
     const url = document.getElementById('import-url').value.trim();
-    if (!url) { toast('Enter a URL', 'error'); resultEl.style.display = 'none'; return; }
+    if (!url) { toast('Enter a web address', 'error'); return; }
+    busy();
     google.script.run
-      .withSuccessHandler(handleImportResult)
-      .withFailureHandler(e => { toast('Extract failed: ' + e.message, 'error'); resultEl.style.display = 'none'; })
-      .extractCpdFromUrl(url);
+      .withSuccessHandler(r => { done(); afterQueue(r); })
+      .withFailureHandler(e => { done(); toast('Failed: ' + e.message, 'error'); })
+      .queueAgendaUrl(url);
   } else {
-    if (!importFile) { toast('Choose a file', 'error'); resultEl.style.display = 'none'; return; }
+    if (!importFile) { toast('Choose a file', 'error'); return; }
+    busy();
     const reader = new FileReader();
     reader.onload = evt => {
       const base64 = evt.target.result.split(',')[1];
       google.script.run
-        .withSuccessHandler(handleImportResult)
-        .withFailureHandler(e => { toast('Extract failed: ' + e.message, 'error'); resultEl.style.display = 'none'; })
-        .extractCpdFromFile(base64, importFile.type);
+        .withSuccessHandler(r => { done(); afterQueue(r); })
+        .withFailureHandler(e => { done(); toast('Failed: ' + e.message, 'error'); })
+        .queueAgendaFile(base64, importFile.type, importFile.name);
     };
+    reader.onerror = () => { done(); toast('Could not read the file', 'error'); };
     reader.readAsDataURL(importFile);
   }
 }
 
-function handleImportResult(r) {
-  const fieldsEl = document.getElementById('import-fields');
+function afterQueue(r) {
   if (!r || r.error) {
-    fieldsEl.innerHTML = `<p style="color:var(--danger)">❌ ${escHtml(r ? r.error : 'Unknown error')}</p>`;
+    toast('Could not queue: ' + (r ? r.error : 'unknown error'), 'error');
     return;
   }
-  importedEntry = r.entry;
-  const e = importedEntry;
-  const roleClass = { 'EPMI': 'pill-epmi', 'Master Trust': 'pill-trust', 'Both': 'pill-both' }[e.roleContext] || '';
-  const typeClass = e.cpdType === 'Structured' ? 'pill-structured' : 'pill-unstructured';
-  const rows = [
-    ['Title',       escHtml(e.title || '—')],
-    ['Date',        escHtml(e.date || '—')],
-    ['Provider',    escHtml(e.provider || '—')],
-    ['Category',    escHtml(e.category || '—')],
-    ['Type',        e.cpdType ? `<span class="pill ${typeClass}">${escHtml(e.cpdType)}</span>` : '—'],
-    ['Hours',       escHtml(String(e.duration || '—'))],
-    ['Role',        e.roleContext ? `<span class="pill ${roleClass}">${escHtml(e.roleContext)}</span>` : '—'],
-    ['Description', escHtml(e.description || '—')],
-    ['Tags',        escHtml(e.tags || '—')],
-    ['Link',        e.linkUrl ? `<a href="${escHtml(e.linkUrl)}" target="_blank" style="color:var(--app-accent)">${escHtml(e.linkUrl.slice(0,60))}${e.linkUrl.length>60?'…':''}</a>` : '—'],
-  ];
-  fieldsEl.innerHTML = rows.map(([label, val]) =>
-    `<div class="import-field-row">
-       <span class="import-field-label">${label}</span>
-       <span class="import-field-value">${val}</span>
-     </div>`
-  ).join('');
-}
-
-function prefillFromImport() {
-  if (!importedEntry) return;
-  const e = importedEntry;
-  // Switch to log view and fill every field
-  showView('log');
-  if (e.date) document.getElementById('f-date').value = e.date;
-  document.getElementById('f-title').value    = e.title    || '';
-  document.getElementById('f-provider').value = e.provider || '';
-  document.getElementById('f-category').value = e.category || '';
-  document.getElementById('f-role').value     = e.roleContext || '';
-  document.getElementById('f-type').value     = e.cpdType  || '';
-  document.getElementById('f-duration').value = e.duration || '';
-  document.getElementById('f-description').value = e.description || '';
-  document.getElementById('f-link').value     = e.linkUrl  || '';
-  // Tags
-  currentTags = e.tags ? e.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
-  renderTagsDisplay();
-  toast('Form pre-filled — review and save ✓', 'success');
-}
-
-function clearImport() {
-  importedEntry = null;
-  document.getElementById('import-result').style.display = 'none';
+  toast('Agenda queued ✓', 'success');
   document.getElementById('import-url').value = '';
   clearImportFile();
+  document.getElementById('import-queued-msg').textContent =
+    (r.name ? '“' + r.name + '” ' : 'The agenda ') +
+    'is in the pipeline inbox. It will be processed on the next scheduled run ' +
+    '(weekdays, 19:00) and then appear in All entries.';
+  document.getElementById('import-queued').style.display = 'block';
 }
 
 // ============================================================
