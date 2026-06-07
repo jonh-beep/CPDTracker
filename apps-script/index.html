@@ -610,7 +610,7 @@
     letter-spacing: 0;
   }
 
-  label .req { color: var(--danger); margin-left: 2px; }
+  label .req { color: var(--danger); margin-left: 2px; font-size: var(--fs-tiny); }
 
   .form-actions {
     display: flex;
@@ -1063,15 +1063,15 @@
           <input type="hidden" id="edit-id">
           <div class="form-grid">
             <div class="form-group">
-              <label>Date <span class="req"></span></label>
+              <label>Date <span class="req">·required</span></label>
               <input type="date" id="f-date" required>
             </div>
             <div class="form-group">
-              <label>Duration (hours) <span class="req"></span></label>
+              <label>Duration (hours) <span class="req">·required</span></label>
               <input type="number" id="f-duration" min="0.25" step="0.25" placeholder="e.g. 1.5" required>
             </div>
             <div class="form-group full">
-              <label>Title / Activity <span class="req"></span></label>
+              <label>Title / Activity <span class="req">·required</span></label>
               <input type="text" id="f-title" placeholder="e.g. Pensions UK Conference – Keynote" required>
             </div>
             <div class="form-group">
@@ -1079,7 +1079,7 @@
               <input type="text" id="f-provider" placeholder="e.g. PMI, Aon, PASA, Self">
             </div>
             <div class="form-group">
-              <label>Category <span class="req"></span></label>
+              <label>Category <span class="req">·required</span></label>
               <select id="f-category" required>
                 <option value="">— Select —</option>
                 <option>Governance & Trusteeship</option>
@@ -1096,7 +1096,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Role Context <span class="req"></span></label>
+              <label>Role Context <span class="req">·required</span></label>
               <select id="f-role" required>
                 <option value="">— Select —</option>
                 <option value="EPMI">EPMI</option>
@@ -1105,7 +1105,7 @@
               </select>
             </div>
             <div class="form-group">
-              <label>CPD Type <span class="req"></span></label>
+              <label>CPD Type <span class="req">·required</span></label>
               <select id="f-type" required>
                 <option value="">— Select —</option>
                 <option value="Structured">Structured</option>
