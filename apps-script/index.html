@@ -953,6 +953,20 @@
   .import-extracting {
     text-align: center; padding: 40px 20px; color: var(--ink-muted);
   }
+  .queued-confirm { display: flex; align-items: flex-start;
+                    gap: var(--space-3); }
+  .queued-check   { width: 32px; height: 32px; flex-shrink: 0;
+                    border-radius: 50%;
+                    background: var(--success-soft);
+                    color: var(--success);
+                    display: flex; align-items: center;
+                    justify-content: center; font-weight: 700; }
+  .queued-title   { font-family: var(--font-sans);
+                    font-size: var(--fs-h3); font-weight: 600;
+                    color: var(--ink); }
+  .queued-msg     { font-size: var(--fs-small);
+                    color: var(--ink-muted);
+                    margin-top: var(--space-1); }
 </style>
 </head>
 <body>
@@ -1238,8 +1252,8 @@
 
         <!-- Mode tabs -->
         <div class="import-tabs" id="import-tabs">
-          <button class="import-tab active" onclick="setImportMode('url')" id="itab-url">🔗 Web address</button>
-          <button class="import-tab" onclick="setImportMode('file')" id="itab-file">📄 File / Screenshot</button>
+          <button class="import-tab active" onclick="setImportMode('url')" id="itab-url"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Web address</button>
+          <button class="import-tab" onclick="setImportMode('file')" id="itab-file"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> File / Screenshot</button>
         </div>
 
         <!-- URL mode -->
@@ -1276,11 +1290,11 @@
 
       <!-- Queued confirmation -->
       <div id="import-queued" class="card" style="display:none">
-        <div style="display:flex;align-items:flex-start;gap:12px">
-          <div style="width:32px;height:32px;flex-shrink:0;border-radius:50%;background:var(--success-soft);color:var(--success);display:flex;align-items:center;justify-content:center;font-weight:700">✓</div>
+        <div class="queued-confirm">
+          <div class="queued-check">✓</div>
           <div>
-            <div style="font-weight:600;color:var(--ink)">Agenda queued</div>
-            <p style="color:var(--ink-muted);font-size:0.85rem;margin-top:4px" id="import-queued-msg"></p>
+            <div class="queued-title">Agenda queued</div>
+            <p class="queued-msg" id="import-queued-msg"></p>
           </div>
         </div>
       </div>
@@ -1543,7 +1557,7 @@ function saveEntry() {
   const btn = document.getElementById('save-btn');
   const btnOrigHtml = btn.innerHTML;
   btn.disabled = true;
-  btn.innerHTML = '⏳ Saving…';
+  btn.innerHTML = 'Saving…';
 
   const proceed = (attachUrl, attachName) => {
     const entry = {
@@ -1666,7 +1680,7 @@ function queueAgenda() {
     ? document.getElementById('import-btn')
     : document.getElementById('import-btn-file');
   const origHtml = btn.innerHTML;
-  const busy = () => { btn.disabled = true; btn.innerHTML = '⏳ Queuing…'; };
+  const busy = () => { btn.disabled = true; btn.innerHTML = 'Queuing…'; };
   const done = () => { btn.disabled = false; btn.innerHTML = origHtml; };
 
   if (importMode === 'url') {
@@ -1840,7 +1854,7 @@ function toast(msg, type = 'success') {
   const container = document.getElementById('toast-container');
   const el = document.createElement('div');
   el.className = `toast ${type}`;
-  el.innerHTML = (type === 'success' ? '✅' : '❌') + ' ' + escHtml(msg);
+  el.innerHTML = (type === 'success' ? '✓' : '⚠') + ' ' + escHtml(msg);
   container.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 0.3s'; setTimeout(() => el.remove(), 300); }, 3500);
 }
