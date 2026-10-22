@@ -60,19 +60,20 @@ function getEntries() {
     if (data.length <= 1) return [];
 
     const headers = data[0];
+    const tz = Session.getScriptTimeZone();
     return data.slice(1).map(row => {
       const entry = {};
-      headers.forEach((h, i) => { entry[h] = row[i]; });
-      if (entry['Date'] instanceof Date) {
-        entry['Date'] = Utilities.formatDate(
-          entry['Date'], Session.getScriptTimeZone(), 'yyyy-MM-dd'
-        );
-      }
-      if (entry['Created At'] instanceof Date) {
-        entry['Created At'] = Utilities.formatDate(
-          entry['Created At'], Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm'
-        );
-      }
+      headers.forEach((h, i) => {
+        const v = row[i];
+        // google.script.run cannot serialise Date objects — convert all to strings.
+        if (v instanceof Date) {
+          entry[h] = h === 'Date'
+            ? Utilities.formatDate(v, tz, 'yyyy-MM-dd')
+            : Utilities.formatDate(v, tz, 'yyyy-MM-dd HH:mm');
+        } else {
+          entry[h] = v;
+        }
+      });
       return entry;
     }).filter(e => e['ID']);
   } catch (err) {

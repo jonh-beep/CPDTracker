@@ -13,6 +13,17 @@ enables home screen installation on iPhone.
 
 ---
 
+## UI work
+
+For any change to `apps-script/index.html`, read
+`.claude/skills/jh-co-design/README.md` first — it is the JH Co
+design system this app is built against (tokens in
+`colors_and_type.css`, components, voice, approved emoji set,
+iconography rules). Claude Code auto-loads the skill from
+`.claude/skills/jh-co-design/`.
+
+---
+
 ## Repository Structure
 
 ```
