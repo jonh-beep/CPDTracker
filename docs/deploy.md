@@ -59,12 +59,13 @@ One-time:
 2. Push `main`.
 3. Repo Settings → Pages → Build from a branch → branch `main`, folder `/pwa`.
 4. Wait for the green tick. Live URL: `https://jonh-beep.github.io/CPDTracker/`.
-5. Locally: `cp pwa/config.example.js pwa/config.local.js`, paste the web app
-   URL, **don't commit it** — `.gitignore` already excludes it.
+5. Locally: `cp pwa/config.example.js pwa/config.local.js` and paste the web
+   app URL. This file **is committed** (see "Public-but-locked" below) so the
+   Pages build can serve it.
 
-The shell is *only* served by Pages — `config.local.js` lives in the deployed
-copy at GitHub but is supplied separately. To set the URL the shell uses in
-production, you have two options:
+The shell is *only* served by Pages, so the URL has to reach the deployed
+copy somehow. To set the URL the shell uses in production, you have two
+options:
 
 - **Personal-only**: load `config.local.js` from a separate hosting that only
   you can serve (e.g. a private gist via a userscript). Heavyweight.
@@ -73,9 +74,9 @@ production, you have two options:
   the URL leaking just means anyone can attempt to call it; the access lock
   rejects them. This is the pragmatic path.
 
-If you go with the second option, remove `pwa/config.local.js` from
-`.gitignore` and commit it. `scripts/check-secrets.sh` will then need its
-exclude list updated.
+This project uses the second option: `pwa/config.local.js` is committed and
+`scripts/check-secrets.sh` already excludes `pwa/config.*.js`. Never commit the
+*pipeline* web app URL or its shared secret — that deployment is anonymous.
 
 ## Retiring an old deployment
 

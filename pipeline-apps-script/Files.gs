@@ -13,6 +13,17 @@
 // Move a Drive file into the given folder. Returns the file's URL.
 function moveToFolder_(fileId, folderId) {
   var file = DriveApp.getFileById(fileId);
+  // This endpoint is reachable with just the shared secret, so only
+  // files already inside the pipeline's own folders may be moved —
+  // never an arbitrary file from elsewhere in the owner's Drive.
+  var allowed = [PROP_FOLDER.inbox, PROP_FOLDER.processed, PROP_FOLDER.failed]
+    .map(function (key) { return getFolderId_(key); });
+  var parents = file.getParents();
+  var inPipeline = false;
+  while (parents.hasNext()) {
+    if (allowed.indexOf(parents.next().getId()) !== -1) { inPipeline = true; break; }
+  }
+  if (!inPipeline) throw new Error('source_file_not_in_pipeline_folders');
   var folder = DriveApp.getFolderById(folderId);
   file.moveTo(folder);            // DriveApp move — no copy, no delete
   return file.getUrl();
@@ -124,13 +135,13 @@ function auditLog_(action, status, rec, entryId, detail) {
     if (!sheet) return;            // setup() not yet run; skip quietly
     sheet.appendRow([
       nowIso_(),
-      action,
-      status,
-      (rec && rec.source_filename) || '',
-      (rec && rec.source_hash) || '',
-      (rec && rec.title) ? makeLogicalKey_(rec) : '',
-      entryId || '',
-      detail || ''
+      cellText_(action),
+      cellText_(status),
+      cellText_((rec && rec.source_filename) || ''),
+      cellText_((rec && rec.source_hash) || ''),
+      cellText_((rec && rec.title) ? makeLogicalKey_(rec) : ''),
+      cellText_(entryId || ''),
+      cellText_(detail || '')
     ]);
   } catch (err) {
     // Auditing must never break the main flow.

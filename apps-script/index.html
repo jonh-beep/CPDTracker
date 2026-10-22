@@ -1451,30 +1451,32 @@ function entryItemHtml(e, compact) {
   const dateStr = e['Date'] ? new Date(e['Date']).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }) : '';
 
   let attachHtml = '';
-  if (e['Attachment URL']) {
-    attachHtml += `<a class="attach-link" href="${e['Attachment URL']}" target="_blank">${ICON_CLIP} ${e['Attachment Name'] || 'Attachment'}</a>`;
+  const attachHref = safeHref(e['Attachment URL']);
+  const linkHref = safeHref(e['Link URL']);
+  if (attachHref) {
+    attachHtml += `<a class="attach-link" href="${attachHref}" target="_blank" rel="noopener noreferrer">${ICON_CLIP} ${escHtml(e['Attachment Name'] || 'Attachment')}</a>`;
   }
-  if (e['Link URL']) {
-    attachHtml += `<a class="attach-link" href="${e['Link URL']}" target="_blank">${ICON_LINK} External link</a>`;
+  if (linkHref) {
+    attachHtml += `<a class="attach-link" href="${linkHref}" target="_blank" rel="noopener noreferrer">${ICON_LINK} External link</a>`;
   }
 
   const actions = compact ? '' : `
-    <div class="entry-actions">
-      <button class="icon-btn icon-btn-edit" title="Edit" onclick="event.stopPropagation();editEntry('${e['ID']}')">${ICON_EDIT}</button>
-      <button class="icon-btn icon-btn-del" title="Delete" onclick="event.stopPropagation();deleteEntry('${e['ID']}')">${ICON_DEL}</button>
+    <div class="entry-actions" data-id="${escHtml(e['ID'])}">
+      <button class="icon-btn icon-btn-edit" title="Edit" onclick="event.stopPropagation();editEntry(this.parentNode.dataset.id)">${ICON_EDIT}</button>
+      <button class="icon-btn icon-btn-del" title="Delete" onclick="event.stopPropagation();deleteEntry(this.parentNode.dataset.id)">${ICON_DEL}</button>
     </div>`;
 
   return `
     <div class="entry-item" onclick="${compact ? "showView('entries')" : ''}">
       <div class="entry-date-col">
         <div class="entry-date">${dateStr}</div>
-        <div class="entry-duration-pill">${e['Duration (hours)']}h</div>
+        <div class="entry-duration-pill">${escHtml(e['Duration (hours)'])}h</div>
       </div>
       <div class="entry-body">
         <div class="entry-title">${escHtml(e['Title'] || '')}</div>
         <div class="entry-meta">
-          <span class="pill ${roleClass}">${e['Role Context'] || ''}</span>
-          <span class="pill ${typeClass}">${e['CPD Type'] || ''}</span>
+          <span class="pill ${roleClass}">${escHtml(e['Role Context'] || '')}</span>
+          <span class="pill ${typeClass}">${escHtml(e['CPD Type'] || '')}</span>
           ${e['Category'] ? `<span style="font-size:0.72rem;color:var(--ink-muted)">${escHtml(e['Category'])}</span>` : ''}
         </div>
         ${e['Provider / Source'] ? `<div class="entry-provider"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${escHtml(e['Provider / Source'])}</div>` : ''}
@@ -1529,7 +1531,8 @@ function editEntry(id) {
   // Show existing attachment
   const existEl = document.getElementById('existing-attachment');
   if (e['Attachment URL']) {
-    existEl.innerHTML = `<div class="file-preview">📎 ${escHtml(e['Attachment Name'] || 'Attachment')} <a href="${e['Attachment URL']}" target="_blank" style="margin-left:4px;color:var(--app-accent)">View</a></div>`;
+    const existHref = safeHref(e['Attachment URL']);
+    existEl.innerHTML = `<div class="file-preview">📎 ${escHtml(e['Attachment Name'] || 'Attachment')}${existHref ? ` <a href="${existHref}" target="_blank" rel="noopener noreferrer" style="margin-left:4px;color:var(--app-accent)">View</a>` : ''}</div>`;
     pendingAttachment = { url: e['Attachment URL'], name: e['Attachment Name'] };
   } else {
     existEl.innerHTML = '';
@@ -1811,9 +1814,11 @@ function renderReport(data, role, start, end) {
 
   document.getElementById('report-table-body').innerHTML = sorted.map(e => {
     const d = e['Date'] ? new Date(e['Date']).toLocaleDateString('en-GB') : '';
+    const attachHref = safeHref(e['Attachment URL']);
+    const linkHref = safeHref(e['Link URL']);
     const attachCell = [
-      e['Attachment URL'] ? `<a href="${e['Attachment URL']}" target="_blank">📎 ${escHtml(e['Attachment Name'] || 'Doc')}</a>` : '',
-      e['Link URL'] ? `<a href="${e['Link URL']}" target="_blank">🔗 Link</a>` : ''
+      attachHref ? `<a href="${attachHref}" target="_blank" rel="noopener noreferrer">📎 ${escHtml(e['Attachment Name'] || 'Doc')}</a>` : '',
+      linkHref ? `<a href="${linkHref}" target="_blank" rel="noopener noreferrer">🔗 Link</a>` : ''
     ].filter(Boolean).join('<br>');
 
     const roleClass = { 'EPMI': 'pill-epmi', 'Master Trust': 'pill-trust', 'Both': 'pill-both' }[e['Role Context']] || '';
@@ -1823,9 +1828,9 @@ function renderReport(data, role, start, end) {
       <td><strong>${escHtml(e['Title'] || '')}</strong>${e['Description / Impact'] ? `<br><small style="color:var(--ink-muted)">${escHtml((e['Description / Impact'] || '').slice(0, 120))}${e['Description / Impact'].length > 120 ? '…' : ''}</small>` : ''}</td>
       <td>${escHtml(e['Category'] || '')}</td>
       <td>${escHtml(e['Provider / Source'] || '')}</td>
-      <td><span class="pill ${e['CPD Type'] === 'Structured' ? 'pill-structured' : 'pill-unstructured'}">${e['CPD Type'] || ''}</span></td>
+      <td><span class="pill ${e['CPD Type'] === 'Structured' ? 'pill-structured' : 'pill-unstructured'}">${escHtml(e['CPD Type'] || '')}</span></td>
       <td style="text-align:right;font-weight:600">${parseFloat(e['Duration (hours)'] || 0).toFixed(1)}</td>
-      <td><span class="pill ${roleClass}">${e['Role Context'] || ''}</span></td>
+      <td><span class="pill ${roleClass}">${escHtml(e['Role Context'] || '')}</span></td>
       <td>${attachCell}</td>
     </tr>`;
   }).join('');
@@ -1836,6 +1841,13 @@ function renderReport(data, role, start, end) {
 // ============================================================
 function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Returns an attribute-safe href for http(s) URLs only, else ''. Blocks
+// javascript:, data: and similar schemes arriving via sheet data.
+function safeHref(url) {
+  const s = String(url || '').trim();
+  return /^https?:\/\//i.test(s) ? escHtml(s) : '';
 }
 
 function toast(msg, type = 'success') {

@@ -50,12 +50,21 @@ revoke those grants.
 `jonh-beep/CPDTracker` is public. Anything committed is permanently
 visible (git history retains it even after deletion). Do not commit:
 
-- The deployed web app URL (`https://script.google.com/macros/s/...`).
-  Lives in `pwa/config.local.js` (gitignored). The shell loads it client-side.
+- Secrets of any kind: the pipeline's shared secret (`AUTH_TOKEN`), API
+  keys, or the `scriptId`. These live in Script Properties / local files only.
 - The Apps Script `scriptId` (in `apps-script/.clasp.json`, gitignored).
   Not directly executable by others, but treat as private hygiene.
 - Any personal CPD data or attachments. The repo holds *code*, not entries —
   entries live only in the bound Google Sheet.
+
+**Exception — the CPD Tracker web app URL is committed on purpose.**
+`pwa/config.local.js` is tracked (despite the name) so the GitHub Pages
+shell can find the app: the "public-but-locked" option in `deploy.md`. The
+URL alone grants nothing — the app is `executeAs: USER_ACCESSING`,
+`access: MYSELF`, and every callable enforces the `ALLOWED_USERS`
+allowlist. The pipeline web app is different (`ANYONE_ANONYMOUS`, guarded
+only by its shared secret), so **its URL and secret must never be
+committed.** `check-secrets.sh` exempts only `pwa/config.*.js`.
 
 `scripts/check-secrets.sh` greps tracked files for the AKfycb / `/macros/s/`
 patterns and exits non-zero if anything is found. `scripts/deploy.sh`

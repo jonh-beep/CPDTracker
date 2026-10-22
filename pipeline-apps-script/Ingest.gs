@@ -134,26 +134,43 @@ function dedupAndWrite_(sheet, rec) {
   return { status: 'created', entryId: entryId, rowIndex: sheet.getLastRow() };
 }
 
+// Neutralise spreadsheet formula injection. Extracted text comes from
+// untrusted web pages / PDFs; Sheets evaluates a string starting with
+// = + - @ as a formula (IMPORTXML, HYPERLINK, ...). A leading
+// apostrophe stores it as literal text (hidden in the cell, and
+// getValues() returns the original string).
+function cellText_(value) {
+  var s = (value === undefined || value === null) ? '' : String(value);
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
+
+// Only http(s) URLs are kept; anything else (javascript:, data:, ...)
+// is dropped so it can never become a clickable link in the app.
+function cleanUrl_(value) {
+  var s = value ? String(value).trim() : '';
+  return /^https?:\/\//i.test(s) ? s : '';
+}
+
 // Build a full 18-cell row for a new entry.
 function buildRow_(entryId, rec, logicalKey) {
   var now = new Date();
   var row = new Array(TOTAL_COLUMNS).fill('');
   row[COL.ID]           = entryId;
   row[COL.DATE]         = parseDate_(rec.event_date);
-  row[COL.TITLE]        = String(rec.title).trim();
-  row[COL.PROVIDER]     = String(rec.organiser).trim();
+  row[COL.TITLE]        = cellText_(String(rec.title).trim());
+  row[COL.PROVIDER]     = cellText_(String(rec.organiser).trim());
   row[COL.CATEGORY]     = rec.themes[0];                       // primary theme
   row[COL.ROLE]         = '';                                   // left blank by design
   row[COL.CPD_TYPE]     = '';                                   // left blank by design
   row[COL.HOURS]        = Math.round((Number(rec.duration_minutes) / 60) * 100) / 100;
-  row[COL.DESCRIPTION]  = rec.summary ? String(rec.summary).trim() : '';
-  row[COL.ATTACH_NAME]  = rec.source_filename;
+  row[COL.DESCRIPTION]  = cellText_(rec.summary ? String(rec.summary).trim() : '');
+  row[COL.ATTACH_NAME]  = cellText_(rec.source_filename);
   row[COL.ATTACH_URL]   = '';                                   // backfilled after file move
-  row[COL.LINK_URL]     = rec.source_url ? String(rec.source_url).trim() : '';
+  row[COL.LINK_URL]     = cleanUrl_(rec.source_url);
   row[COL.TAGS]         = rec.themes.join(', ');
   row[COL.CREATED]      = now;                                  // first_recorded
   row[COL.LAST_UPDATED] = now;
-  row[COL.SOURCE_HASH]  = rec.source_hash;
+  row[COL.SOURCE_HASH]  = cellText_(rec.source_hash);
   row[COL.LOGICAL_KEY]  = logicalKey;
   row[COL.REVISIONS]    = 0;
   return row;
@@ -164,12 +181,12 @@ function buildRow_(entryId, rec, logicalKey) {
 // and Last_Updated. The original Source_Hash is kept.
 function mergeRow_(sheet, rowIndex, existing, rec) {
   var candidates = {};
-  candidates[COL.PROVIDER]    = String(rec.organiser || '').trim();
+  candidates[COL.PROVIDER]    = cellText_(String(rec.organiser || '').trim());
   candidates[COL.CATEGORY]    = rec.themes[0];
   candidates[COL.HOURS]       = Math.round((Number(rec.duration_minutes) / 60) * 100) / 100;
-  candidates[COL.DESCRIPTION] = rec.summary ? String(rec.summary).trim() : '';
-  candidates[COL.ATTACH_NAME] = rec.source_filename;
-  candidates[COL.LINK_URL]    = rec.source_url ? String(rec.source_url).trim() : '';
+  candidates[COL.DESCRIPTION] = cellText_(rec.summary ? String(rec.summary).trim() : '');
+  candidates[COL.ATTACH_NAME] = cellText_(rec.source_filename);
+  candidates[COL.LINK_URL]    = cleanUrl_(rec.source_url);
   candidates[COL.TAGS]        = rec.themes.join(', ');
 
   var filled = [];

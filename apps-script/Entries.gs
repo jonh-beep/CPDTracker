@@ -94,24 +94,33 @@ function getSettings() {
   }
 }
 
+// Neutralise spreadsheet formula injection: Sheets evaluates a string
+// that starts with = + - @ as a formula (IMPORTXML, HYPERLINK, ...).
+// A leading apostrophe stores it as literal text; Sheets hides the
+// apostrophe and getValues() returns the original string.
+function cellText_(value) {
+  const s = value === undefined || value === null ? '' : String(value);
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+}
+
 // Build a row array from an entry object, in ENTRY_HEADERS order.
 function buildRow_(id, data, createdAt) {
   return [
     id,
     new Date(data.date || data['Date']),
-    data.title   || data['Title']               || '',
-    data.provider || data['Provider / Source']   || '',
-    data.category || data['Category']            || '',
-    data.roleContext || data['Role Context']      || '',
-    data.cpdType    || data['CPD Type']           || '',
+    cellText_(data.title   || data['Title']               || ''),
+    cellText_(data.provider || data['Provider / Source']   || ''),
+    cellText_(data.category || data['Category']            || ''),
+    cellText_(data.roleContext || data['Role Context']      || ''),
+    cellText_(data.cpdType    || data['CPD Type']           || ''),
     parseFloat(data.duration || data['Duration (hours)']) || 0,
-    data.description || data['Description / Impact'] || '',
-    data.attachmentName || data['Attachment Name'] || '',
-    data.attachmentUrl  || data['Attachment URL']  || '',
-    data.linkUrl        || data['Link URL']        || '',
-    Array.isArray(data.tags)
+    cellText_(data.description || data['Description / Impact'] || ''),
+    cellText_(data.attachmentName || data['Attachment Name'] || ''),
+    cellText_(data.attachmentUrl  || data['Attachment URL']  || ''),
+    cellText_(data.linkUrl        || data['Link URL']        || ''),
+    cellText_(Array.isArray(data.tags)
       ? data.tags.join(', ')
-      : (data['Tags'] || ''),
+      : (data['Tags'] || '')),
     createdAt
   ];
 }
