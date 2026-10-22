@@ -26,8 +26,8 @@ function logAudit_(action, entryId, field, oldValue, newValue) {
     action,
     entryId,
     field,
-    oldValue === undefined || oldValue === null ? '' : String(oldValue),
-    newValue === undefined || newValue === null ? '' : String(newValue)
+    cellText_(oldValue),
+    cellText_(newValue)
   ]);
 }
 

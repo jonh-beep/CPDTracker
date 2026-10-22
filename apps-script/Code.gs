@@ -15,6 +15,5 @@ function doGet(e) {
   assertAllowedUser_();
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('CPD Tracker')
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
     .addMetaTag('viewport', 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
 }

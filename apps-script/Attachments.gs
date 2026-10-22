@@ -32,7 +32,17 @@ function uploadFile(base64Data, mimeType, fileName) {
 function deleteFile(fileId) {
   assertAllowedUser_();
   try {
-    DriveApp.getFileById(fileId).setTrashed(true);
+    const file = DriveApp.getFileById(fileId);
+    // Only files inside the attachments folder may be trashed; this
+    // callable must not become a way to delete arbitrary Drive files.
+    const attachmentsId = getOrCreateFolder().getId();
+    const parents = file.getParents();
+    let inAttachments = false;
+    while (parents.hasNext()) {
+      if (parents.next().getId() === attachmentsId) { inAttachments = true; break; }
+    }
+    if (!inAttachments) return { error: 'Not a CPD Tracker attachment' };
+    file.setTrashed(true);
     return { success: true };
   } catch (err) {
     return { error: err.message };

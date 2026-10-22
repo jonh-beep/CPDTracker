@@ -13,6 +13,17 @@ enables home screen installation on iPhone.
 
 ---
 
+## UI work
+
+For any change to `apps-script/index.html`, read
+`.claude/skills/jh-co-design/README.md` first — it is the JH Co
+design system this app is built against (tokens in
+`colors_and_type.css`, components, voice, approved emoji set,
+iconography rules). Claude Code auto-loads the skill from
+`.claude/skills/jh-co-design/`.
+
+---
+
 ## Repository Structure
 
 ```
@@ -42,7 +53,7 @@ CPDTracker/
 │   ├── sw.js
 │   ├── icon-180.png / 192 / 512
 │   ├── config.example.js
-│   └── config.local.js             (gitignored — holds the web app URL)
+│   └── config.local.js             (committed on purpose — holds the web app URL)
 │
 ├── docs/
 │   ├── architecture.md
@@ -68,7 +79,8 @@ CPDTracker/
 That runs `clasp push` then `clasp deploy --description "<git short sha>: <message>"`
 so each deployment ties back to a commit.
 
-**Web app URL** — held in `pwa/config.local.js` (gitignored). Get it from
+**Web app URL** — held in `pwa/config.local.js` (committed on purpose so Pages
+can serve it; safe because the app is locked to the allowlisted user). Get it from
 the Apps Script editor: Deploy → Manage deployments → Web app URL.
 
 **PWA on GitHub Pages** — repo `jonh-beep/CPDTracker`, Pages serves from
@@ -173,8 +185,9 @@ Three layers (see [docs/security.md](docs/security.md) for full detail):
 1. **`appsscript.json`** — `executeAs: USER_ACCESSING`, `access: MYSELF`.
 2. **`ALLOWED_USERS` allowlist in Auth.gs** — every callable enforces it.
 3. **Attachments** — uploaded as `DriveApp.Access.PRIVATE`. The deployed
-   web app URL is treated as a secret and lives in `pwa/config.local.js`
-   (gitignored), never in the repo.
+   web app URL lives in `pwa/config.local.js` and is committed on purpose
+   (public-but-locked: the URL alone grants nothing). The *pipeline* web
+   app URL and shared secret must never be committed.
 
 ---
 
